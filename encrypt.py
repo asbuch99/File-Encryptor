@@ -1,6 +1,10 @@
 import PySimpleGUI as sg
 import cryptography
+import os
+import base64
 from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
 layout = [
@@ -36,19 +40,30 @@ while True:
     elif values["-DECRYPT-"]:
         mode = "decrypt"
 
-  
+    passw = password.encode()
+
+    salt = "saltysalt".encode()
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=390000,
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(passw))
+    f = Fernet(key)
+
     with open(filepath, "rb") as file:
         data = file.read()
-    fernet = Fernet(bytes(password, "utf-8"))
+        
     if mode == "encrypt":
-        encrypted_data = fernet.encrypt(data)
+        encrypted_data = f.encrypt(data)
         new_filename = f"{filepath}.encrypted"
         with open(new_filename, "wb") as file:
             file.write(encrypted_data)
         sg.popup(f"File encrypted and saved as {new_filename}")
     elif mode == "decrypt":
         try:
-            decrypted_data = fernet.decrypt(data)
+            decrypted_data = f.decrypt(encrypted_data.decode())
         except cryptography.fernet.InvalidToken:
             sg.popup("Invalid password or file")
             continue
@@ -56,6 +71,7 @@ while True:
         with open(new_filename, "wb") as file:
             file.write(decrypted_data)
         sg.popup(f"File decrypted and saved as {new_filename}")
+        
 
 window.close()
 
