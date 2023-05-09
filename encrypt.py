@@ -19,7 +19,6 @@ layout = [
 
 window = sg.Window("File Encryption/Decryption", layout)
 
-
 while True:
     event, values = window.read()
     if event == sg.WINDOW_CLOSED or event == "Cancel":
